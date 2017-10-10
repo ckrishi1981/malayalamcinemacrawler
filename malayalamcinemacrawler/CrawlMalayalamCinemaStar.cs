@@ -70,9 +70,13 @@ namespace malayalamcinemacrawler
             string starPage = "http://www.malayalamcinema.com/star-details.php?member_id=";
             Task<string> t = GetStreamAsync(starPage + id);
             string html = await t;
-            
-
-
+            Regex rx = new Regex("<span class=\\\"morenews\\\">(.*)<\\/span>");
+            var match = rx.Match(html);
+            if (match.Success)
+            {
+                return match.Groups[1];
+            }
+            return "";
         }
         public static void Crawl()
         {
@@ -80,6 +84,7 @@ namespace malayalamcinemacrawler
             string baseUrl = "http://www.malayalamcinema.com/meet-the-star.php?pageID=";
             int pageId = 0;
             bool baseHasNextPage = false;
+            c.ParseStarDetail("463");
             ArrayList idList = new ArrayList();
             do
             {
@@ -90,12 +95,13 @@ namespace malayalamcinemacrawler
                 baseHasNextPage = c.ParsePage(t.Result, ref idList);
             }
             while (baseHasNextPage);
-            
+
             Console.WriteLine("Finished star");
-
-
-            
-
         }
+       
+
+
+
+
     }
 }
