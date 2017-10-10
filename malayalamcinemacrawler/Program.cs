@@ -17,7 +17,7 @@ namespace malayalamcinemacrawler
            
             StreamReader streamReader = new StreamReader(dataStream);
             string html = streamReader.ReadToEnd();
-            System.Console.WriteLine(html);
+            //System.Console.WriteLine(html);
             return html;
 
 
@@ -30,17 +30,19 @@ namespace malayalamcinemacrawler
 
         static void Main(string[] args)
         {
-          
-
-            Crawl c = new Crawl();
-            Task t = c.GetStreamAsync("http://www.malayalamcinema.com/meet-the-star.php");
-            t.ContinueWith(str
-                 => Console.WriteLine(str));
-            t.Wait();
 
 
+            //Crawl c = new Crawl();
+            //Task<string> t = c.GetStreamAsync("http://www.malayalamcinema.com/meet-the-star.php");
 
-         //   string s = await c.GetStreamAsync("http://www.malayalamcinema.com/meet-the-star.php");
+
+            //t.Wait();
+
+            //Console.Write(t.Result);
+
+            CrawlMalayalamCinemaStar cms = new CrawlMalayalamCinemaStar();
+            cms.Crawl();
+            //   string s = await c.GetStreamAsync("http://www.malayalamcinema.com/meet-the-star.php");
 
         }
 
