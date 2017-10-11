@@ -161,13 +161,13 @@ namespace malayalamcinemacrawler
                 Console.WriteLine("<images>");
                 foreach(var image in mcs._pictures)
                 {
-                    Console.WriteLine("<image>{0}</image>", image.ToString());
+                    Console.WriteLine("<image>http://www.malayalamcinema.com/{0}</image>", image.ToString());
                 }
                 Console.WriteLine("</images>");
 
                 Console.WriteLine("</actor>");
             }
-            Console.WriteLine("<xml>");
+            Console.WriteLine("</xml>");
 
         }
     }
