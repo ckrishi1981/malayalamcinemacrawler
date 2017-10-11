@@ -12,13 +12,14 @@ namespace malayalamcinemacrawler
     class MalayalamCinemaStar
     {
        public string _name;
+        public string _blurp;
         public ArrayList _pictures = new ArrayList();
     }
     class CrawlMalayalamCinemaStar
     {
        
 
-        private async System.Threading.Tasks.Task<string> GetStreamAsync(string url)
+        private async Task<string> GetStreamAsync(string url)
         {
             WebRequest wr = WebRequest.Create(url);
             wr.Method = "GET";
@@ -59,32 +60,79 @@ namespace malayalamcinemacrawler
                 {
                     id.Add(match.Groups[1]);
                 }
-                Console.WriteLine(table);
+                //Console.WriteLine(table);
             }
 
             return hasNextPage;
         }
 
-        private async void ParseStarDetail(string id)
+        private async Task<MalayalamCinemaStar> ParseStarDetail(string id)
         {
             string starPage = "http://www.malayalamcinema.com/star-details.php?member_id=";
             Task<string> t = GetStreamAsync(starPage + id);
             string html = await t;
             Regex rx = new Regex("<span class=\\\"morenews\\\">(.*)<\\/span>");
+            Regex blurp = new Regex("<td align=\\\"justify\\\"><p>(.*)<\\/p><\\/td>");
+            Regex image = new Regex("member\\/" + id + "\\/membgal\\/(.*).jpg");
+            MalayalamCinemaStar mcs = new MalayalamCinemaStar();
             var match = rx.Match(html);
+            
             if (match.Success)
             {
-                return match.Groups[1];
+                mcs._name = match.Groups[1].Value;
             }
-            return "";
+            match = blurp.Match(html);
+            if (match.Success)
+            {
+                mcs._blurp = match.Groups[1].Value;
+            }
+            MatchCollection matchCollection = image.Matches(html);
+            if (matchCollection.Count > 0)
+            {
+                foreach (var c in matchCollection)
+                {
+                     match = (Match)c;
+                    
+                    if (!match.Value.Contains("thumb_"))
+                    {
+                        mcs._pictures.Add(match.Value);
+                    }
+                }
+           
+            }
+ 
+            return mcs;
+        }
+
+        private static async Task<ArrayList> GetAllStarDetail(ArrayList idList)
+        {
+            ArrayList startDetailTasks = new ArrayList();
+            ArrayList startDetails = new ArrayList();
+
+
+            foreach (var id in idList)
+            {
+                CrawlMalayalamCinemaStar cm = new CrawlMalayalamCinemaStar();
+                 Task<MalayalamCinemaStar> startDetailTask = cm.ParseStarDetail(id.ToString());
+                startDetailTasks.Add(startDetailTask);
+            }
+
+            foreach(var task in startDetailTasks)
+            {
+                Task<MalayalamCinemaStar> taskStar = (Task<MalayalamCinemaStar>)task;
+                MalayalamCinemaStar star = await taskStar;
+                startDetails.Add(star);
+
+            }
+            return startDetails;
         }
         public static void Crawl()
         {
             CrawlMalayalamCinemaStar c = new CrawlMalayalamCinemaStar();
             string baseUrl = "http://www.malayalamcinema.com/meet-the-star.php?pageID=";
-            int pageId = 0;
+            int pageId = 1;
             bool baseHasNextPage = false;
-            c.ParseStarDetail("463");
+    
             ArrayList idList = new ArrayList();
             do
             {
@@ -96,12 +144,31 @@ namespace malayalamcinemacrawler
             }
             while (baseHasNextPage);
 
+
+
             Console.WriteLine("Finished star");
-        }
+
        
+            Task<ArrayList> details = CrawlMalayalamCinemaStar.GetAllStarDetail(idList);
+            details.Wait();
+            Console.WriteLine("<xml>");
+            foreach( var detail in details.Result)
+            {
+                Console.WriteLine("<actor>");
+                MalayalamCinemaStar mcs = (MalayalamCinemaStar)detail;
+                Console.WriteLine("<name>{0}</name>", mcs._name);
+                Console.WriteLine("<blurp>{0}</blurp>", mcs._blurp);
+                Console.WriteLine("<images>");
+                foreach(var image in mcs._pictures)
+                {
+                    Console.WriteLine("<image>{0}</image>", image.ToString());
+                }
+                Console.WriteLine("</images>");
 
+                Console.WriteLine("</actor>");
+            }
+            Console.WriteLine("<xml>");
 
-
-
+        }
     }
 }
