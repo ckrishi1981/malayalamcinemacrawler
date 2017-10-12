@@ -11,7 +11,7 @@ namespace malayalamcinemacrawler
 {
     class MalayalamCinemaStar
     {
-       public string _name;
+        public string _name;
         public string _blurp;
         public ArrayList _pictures = new ArrayList();
     }

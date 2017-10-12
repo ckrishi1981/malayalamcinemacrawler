@@ -10,7 +10,8 @@ namespace malayalamcinemacrawler
     {
         static void Main(string[] args)
         {
-            CrawlMalayalamCinemaStar.Crawl();
+            // CrawlMalayalamCinemaStar.Crawl();
+            CrawlMalayalamMovieList.Crawl();
         }
     }
 }
