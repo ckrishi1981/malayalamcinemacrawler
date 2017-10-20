@@ -41,7 +41,7 @@ namespace malayalamcinemacrawler
         public bool ParsePage(string pageContent, ref ArrayList id)
         {
             bool hasNextPage = pageContent.IndexOf("Next &gt;&gt;") >= 0;
-            Regex rx = new Regex("\"(gallery_.*htm)");
+            Regex rx = new Regex("(gallery_.*htm)");
             MatchCollection matchcollection;
 
             matchcollection = rx.Matches(pageContent);
@@ -49,7 +49,7 @@ namespace malayalamcinemacrawler
             {
                 string s = ((Match)match).Value;
                 id.Add(s);
-                Console.WriteLine(s);
+               // Console.WriteLine(s);
                 
             }
             
@@ -70,12 +70,12 @@ namespace malayalamcinemacrawler
 
             if (match.Success)
             {
-                mmd._movieName = match.Groups[1].Value;
+                mmd._movieName = match.Groups[1].Value.Trim();
             }
             match = yearOfRelease.Match(html);
             if (match.Success)
             {
-                mmd._dateOfRelease = match.Groups[1].Value;
+                mmd._dateOfRelease = match.Groups[1].Value.Trim();
             }
 
             return mmd;
@@ -83,22 +83,26 @@ namespace malayalamcinemacrawler
 
         private static async Task<ArrayList> GetMovieDetails(ArrayList idList)
         {
+            Task<MalayalamMovieDetail>[] movieDetails = new Task<MalayalamMovieDetail>[idList.Count];
             ArrayList startDetailTasks = new ArrayList();
             ArrayList startDetails = new ArrayList();
 
-
+            int count = 0;
             foreach (var id in idList)
             {
                 CrawlMalayalamMovieList cm = new CrawlMalayalamMovieList();
                 Task<MalayalamMovieDetail> startDetailTask = cm.ParseMovieDetail(id.ToString());
-                startDetailTasks.Add(startDetailTask);
+                //startDetailTasks.Add(startDetailTask);
+                movieDetails[count] = startDetailTask;
+                count++;
             }
+            Task.WaitAll(movieDetails);
 
-            foreach (var task in startDetailTasks)
+            foreach (Task<MalayalamMovieDetail> movieDetail in movieDetails)
             {
-                Task<MalayalamMovieDetail> taskStar = (Task<MalayalamMovieDetail>)task;
-                MalayalamMovieDetail star = await taskStar;
-                startDetails.Add(star);
+     
+                //MalayalamMovieDetail star = await taskStar;
+                startDetails.Add(movieDetail.Result);
 
             }
             return startDetails;
@@ -109,7 +113,7 @@ namespace malayalamcinemacrawler
             CrawlMalayalamMovieList c = new CrawlMalayalamMovieList();
             string baseUrl = "http://www.malayalamcinema.com/filmList.php?pageID=";
             int pageId = 1;
-            const int size = 862;
+            const int size = 5;
             bool baseHasNextPage = false;
             Task[] taskList = new Task[size];
             int count = 0;
@@ -117,13 +121,12 @@ namespace malayalamcinemacrawler
             ArrayList idList = new ArrayList();
             do
             {
-                Console.WriteLine("Page {0}", pageId);
+            //    Console.WriteLine("Page {0}", pageId);
 
                 Task<string> t = c.GetStreamAsync(baseUrl + pageId.ToString());
                 taskList[pageId - 1] = t;
                 pageId++;
-                t.ContinueWith(result => { c.ParsePage(result.Result, ref idList); count++; });
-                
+               
                 //taskList.Add(t);
                 
                 //string result = await t;
@@ -136,8 +139,16 @@ namespace malayalamcinemacrawler
             //    var p = await (Task<string>)t;
             //}
             Task.WaitAll(taskList);
-            while (count != size) ;
-        
+            foreach(var task in taskList)
+            {
+                Task<string> t = (Task<string>)task;
+               
+                 c.ParsePage(t.Result, ref idList);
+                //Console.WriteLine("Page {0}", count);
+                count++;
+
+            }
+
             return idList;
 
 
@@ -145,22 +156,18 @@ namespace malayalamcinemacrawler
         public static void Crawl()
         {
 
-            //Task<ArrayList> idList = GetMovieList();
-            //idList.Wait();
-            //foreach(var id in idList.Result)
-            //{
-            //    Console.WriteLine("{0}", id);
-            //}
-            ArrayList idlist = new ArrayList();
-            idlist.Add("gallery_bangalore-days.htm");
-            var t =GetMovieDetails(idlist);
-            t.Wait();
-            Console.WriteLine("Finished Movies");
-            //throw new Exception("What is htis:");
+            Task<ArrayList> idlist = GetMovieList();
+            idlist.Wait();
 
+            Task<ArrayList> movieDetails =GetMovieDetails(idlist.Result);
+            movieDetails.Wait();
 
+            foreach(MalayalamMovieDetail movieDetail in movieDetails.Result)
+            {
+                Console.WriteLine(movieDetail._movieName);
+            }
 
-
+      
         }
     }
 

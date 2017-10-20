@@ -145,29 +145,33 @@ namespace malayalamcinemacrawler
             while (baseHasNextPage);
 
 
-
-            Console.WriteLine("Finished star");
-
        
             Task<ArrayList> details = CrawlMalayalamCinemaStar.GetAllStarDetail(idList);
             details.Wait();
-            Console.WriteLine("<xml>");
-            foreach( var detail in details.Result)
-            {
-                Console.WriteLine("<actor>");
-                MalayalamCinemaStar mcs = (MalayalamCinemaStar)detail;
-                Console.WriteLine("<name>{0}</name>", mcs._name);
-                Console.WriteLine("<blurp>{0}</blurp>", mcs._blurp);
-                Console.WriteLine("<images>");
-                foreach(var image in mcs._pictures)
-                {
-                    Console.WriteLine("<image>http://www.malayalamcinema.com/{0}</image>", image.ToString());
-                }
-                Console.WriteLine("</images>");
+            //Console.WriteLine("<xml>");
+            //foreach( var detail in details.Result)
+            //{
+            //    Console.WriteLine("<actor>");
+            //    MalayalamCinemaStar mcs = (MalayalamCinemaStar)detail;
+            //    Console.WriteLine("<name>{0}</name>", mcs._name);
+            //    Console.WriteLine("<blurp>{0}</blurp>", mcs._blurp);
+            //    Console.WriteLine("<images>");
+            //    foreach(var image in mcs._pictures)
+            //    {
+            //        Console.WriteLine("<image>http://www.malayalamcinema.com/{0}</image>", image.ToString());
+            //    }
+            //    Console.WriteLine("</images>");
 
-                Console.WriteLine("</actor>");
+            //    Console.WriteLine("</actor>");
+            //}
+            //Console.WriteLine("</xml>");
+
+
+            foreach (var detail  in details.Result)
+            {
+                MalayalamCinemaStar mcs = (MalayalamCinemaStar)detail;
+                Console.WriteLine("{0}", mcs._name.Trim());
             }
-            Console.WriteLine("</xml>");
 
         }
     }
