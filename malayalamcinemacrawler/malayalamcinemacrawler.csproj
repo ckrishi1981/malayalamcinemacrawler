@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CallTMDBPerson.cs" />
     <Compile Include="CrawlMalayalamCinemaStar.cs" />
     <Compile Include="CrawlMalayalamMovieList.cs" />
     <Compile Include="Program.cs" />

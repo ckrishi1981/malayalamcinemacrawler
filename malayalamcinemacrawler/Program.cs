@@ -11,7 +11,8 @@ namespace malayalamcinemacrawler
         static void Main(string[] args)
         {
             // CrawlMalayalamCinemaStar.Crawl();
-            CrawlMalayalamMovieList.Crawl();
+            // CrawlMalayalamMovieList.Crawl();
+            CallTMDBPerson.Get();
         }
     }
 }
