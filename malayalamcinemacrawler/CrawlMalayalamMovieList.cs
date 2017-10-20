@@ -13,9 +13,10 @@ namespace malayalamcinemacrawler
     class MalayalamMovieDetail
     {
         public string _dateOfRelease;
+        public string _director;
         public string _movieName;
         public ArrayList _producers;
-        public ArrayList _casts;
+        public string[] _casts;
         public ArrayList _musicDirectors;
         public ArrayList _cinematographers;
         public ArrayList _screenPlayWriters;
@@ -77,6 +78,37 @@ namespace malayalamcinemacrawler
             {
                 mmd._dateOfRelease = match.Groups[1].Value.Trim();
             }
+
+            //director
+
+            int index = html.IndexOf("<td class=\"subpageheads\"><strong>Director</strong></td>");
+            int endIndex = html.IndexOf("</tr>", index);
+            string str = html.Substring(index, endIndex - index);
+            //<td class=\"normaltext\">
+            Regex directors = new Regex("<td class=\"normaltext\">(.*)</td>");
+            match = directors.Match(html);
+            if (match.Success)
+            {
+                mmd._director = match.Groups[1].Value.Trim();
+            }
+
+            //<td class="normaltext" valign="top">
+            index = html.IndexOf("<td class=\"subpageheads\" valign=\"top\"><strong>Cast</strong></td>");
+            endIndex = html.IndexOf("</tr>", index);
+            str = html.Substring(index, endIndex - index);
+            str = str.Replace("\n", "");
+            str = str.Replace("\r", "");
+            Regex cast = new Regex("<td class=\"normaltext\" valign=\"top\">(.*)</td>");
+            match = cast.Match(str);
+            if (match.Success)
+            {
+                string actors = match.Groups[1].Value;
+                string[] split = { "<br />" };
+                mmd._casts =  actors.Split(split, StringSplitOptions.RemoveEmptyEntries);
+            }
+
+            //end of directorC:\Users\ck_ri\projects\malayalamcinemacrawler\malayalamcinemacrawler\CrawlMalayalamMovieList.cs
+
 
             return mmd;
         }
@@ -155,6 +187,11 @@ namespace malayalamcinemacrawler
         }
         public static void Crawl()
         {
+            CrawlMalayalamMovieList c = new CrawlMalayalamMovieList();
+            var v = c.ParseMovieDetail("gallery_lechmi.htm");
+
+            v.Wait();
+            return;
 
             Task<ArrayList> idlist = GetMovieList();
             idlist.Wait();
