@@ -14,7 +14,7 @@ namespace malayalamcinemacrawler
     {
         private static async Task<string> GetStreamAsync(string pageId)
         {
-            string url = "https://api.themoviedb.org/3/person/popular?api_key=f602ac17ab98b7fc89972399368e408c&language=en-US&page=" + pageId;
+            string url = "https://api.themoviedb.org/3/person/popular?api_key=&language=en-US&page=" + pageId;
             WebRequest wr = WebRequest.Create(url);
             wr.Method = "GET";
            
