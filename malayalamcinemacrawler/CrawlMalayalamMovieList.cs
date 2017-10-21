@@ -16,11 +16,14 @@ namespace malayalamcinemacrawler
         public string _director;
         public string _movieName;
         public ArrayList _producers;
-        public string[] _casts;
+        public ArrayList _casts;
         public ArrayList _musicDirectors;
+        public ArrayList _lyrics;
         public ArrayList _cinematographers;
         public ArrayList _screenPlayWriters;
         public ArrayList _Editors;
+        public ArrayList _thumbNailImages;
+        public ArrayList _previewImages;
     }
     class CrawlMalayalamMovieList
     {
@@ -58,57 +61,146 @@ namespace malayalamcinemacrawler
             return hasNextPage;
         }
 
-        private async Task<MalayalamMovieDetail> ParseMovieDetail(string id)
+        private  string GetSubString(string html, string startIndexString, string endIndexString )
         {
-            string starPage = "http://www.malayalamcinema.com/";
-            Task<string> t = GetStreamAsync(starPage + id);
-            string html = await t;
-            Regex title = new Regex("<td valign=\\\"middle\\\" id=\\\"c-bg\\\"><span class=\\\"head\\\">(.*)<\\/span><\\/td>");
-            Regex yearOfRelease = new Regex("<td.*width=\\\"299\\\">(.*)<\\/td>");
-           
-             MalayalamMovieDetail mmd = new MalayalamMovieDetail();
-            var match = title.Match(html);
-
-            if (match.Success)
-            {
-                mmd._movieName = match.Groups[1].Value.Trim();
-            }
-            match = yearOfRelease.Match(html);
-            if (match.Success)
-            {
-                mmd._dateOfRelease = match.Groups[1].Value.Trim();
-            }
-
-            //director
-
-            int index = html.IndexOf("<td class=\"subpageheads\"><strong>Director</strong></td>");
-            int endIndex = html.IndexOf("</tr>", index);
+            int index = html.IndexOf(startIndexString);
+            if (index < 0) return String.Empty;
+            int endIndex = html.IndexOf(endIndexString, index);
             string str = html.Substring(index, endIndex - index);
-            //<td class=\"normaltext\">
-            Regex directors = new Regex("<td class=\"normaltext\">(.*)</td>");
-            match = directors.Match(html);
-            if (match.Success)
-            {
-                mmd._director = match.Groups[1].Value.Trim();
-            }
-
-            //<td class="normaltext" valign="top">
-            index = html.IndexOf("<td class=\"subpageheads\" valign=\"top\"><strong>Cast</strong></td>");
-            endIndex = html.IndexOf("</tr>", index);
-            str = html.Substring(index, endIndex - index);
             str = str.Replace("\n", "");
             str = str.Replace("\r", "");
-            Regex cast = new Regex("<td class=\"normaltext\" valign=\"top\">(.*)</td>");
-            match = cast.Match(str);
+            return str;
+        }
+
+        private ArrayList GetPeopleFromSubString(string subString, Regex regex)
+        {
+            var match = regex.Match(subString);
             if (match.Success)
             {
                 string actors = match.Groups[1].Value;
                 string[] split = { "<br />" };
-                mmd._casts =  actors.Split(split, StringSplitOptions.RemoveEmptyEntries);
+                ArrayList modifiedList = new ArrayList();
+                ArrayList castList = new ArrayList();
+                castList.AddRange(actors.Split(split, StringSplitOptions.RemoveEmptyEntries));
+
+                if (actors.Contains(","))
+                {
+                    foreach (string actor in castList)
+                    {
+                        char[] charArray = { ',' };
+                        modifiedList.AddRange(actor.Split(charArray));
+
+                    }
+                }
+                else
+                {
+                    modifiedList.AddRange(castList);
+                }
+                return modifiedList;
             }
+            return null;
+        }
 
-            //end of directorC:\Users\ck_ri\projects\malayalamcinemacrawler\malayalamcinemacrawler\CrawlMalayalamMovieList.cs
+        private ArrayList GetCast(string html)
+        {
+            
+            Regex cast = new Regex("<td class=\"normaltext\" valign=\"top\">(.*)</td>");
+            string str = GetSubString(html,
+                "<td class=\"subpageheads\" valign=\"top\"><strong>Cast</strong></td>", 
+                "</tr>");
+            return GetPeopleFromSubString(str, cast);
+        }
 
+        private ArrayList GetProducer(string html)
+        {
+            Regex cast = new Regex("<td class=\"normaltext\">(.*)</td>");
+            string str = GetSubString(html, 
+                "<td class=\"subpageheads\"><strong>Producer</strong></td>", 
+                "</tr>");
+            var match = cast.Match(str);
+            return GetPeopleFromSubString(str, cast) ; 
+        }
+
+        private ArrayList GetLyrics(string html)
+        {
+            Regex cast = new Regex("<td class=\"normaltext\">(.*)</td>");
+            string str = GetSubString(html,
+                "<td class=\"subpageheads\"><strong>Lyrics</strong></td>",
+                "</tr>");
+            var match = cast.Match(str);
+            return GetPeopleFromSubString(str, cast);
+        }
+
+
+        private ArrayList GetGenericsData(string html, string typeOfJob)
+        {
+            Regex cast = new Regex("<td class=\"normaltext\">(.*)</td>");
+            string str = GetSubString(html,
+                "<td class=\"subpageheads\"><strong>"+ typeOfJob +"</strong></td>",
+                "</tr>");
+
+            if (String.IsNullOrEmpty(str))
+            {
+                str = GetSubString(html,
+                "<td ><strong>" + typeOfJob + "</strong></td>",
+                "</tr>");
+            }
+            str = str.Replace("<td>:</td>", "");
+            var match = cast.Match(str);
+            if (!match.Success)
+            {
+                cast = new Regex("<td>(.*)</td>");
+                match = cast.Match(str);
+            }
+            return GetPeopleFromSubString(str, cast);
+        }
+        private async Task<MalayalamMovieDetail> ParseMovieDetail(string id)
+        {
+
+            MalayalamMovieDetail mmd = new MalayalamMovieDetail();
+            try
+            {
+                string starPage = "http://www.malayalamcinema.com/";
+                Task<string> t = GetStreamAsync(starPage + id);
+                string html = await t;
+                Regex title = new Regex("<td valign=\\\"middle\\\" id=\\\"c-bg\\\"><span class=\\\"head\\\">(.*)<\\/span><\\/td>");
+                Regex yearOfRelease = new Regex("<td.*width=\\\"299\\\">(.*)<\\/td>");
+
+                var match = title.Match(html);
+
+                if (match.Success)
+                {
+                    mmd._movieName = match.Groups[1].Value.Trim();
+                }
+                match = yearOfRelease.Match(html);
+                if (match.Success)
+                {
+                    mmd._dateOfRelease = match.Groups[1].Value.Trim();
+                }
+
+                //director
+                ArrayList director = GetGenericsData(html, "Director");
+                if (director != null )
+                {
+                    mmd._director = (string) director[0];
+                }
+
+
+                mmd._producers = GetProducer(html);
+                mmd._casts = GetCast(html);
+
+                mmd._lyrics = GetGenericsData(html, "Lyrics");
+                mmd._musicDirectors = GetGenericsData(html, "Music");
+                mmd._Editors = GetGenericsData(html, "Editing");
+                mmd._cinematographers = GetGenericsData(html, "Cinematography");
+                mmd._screenPlayWriters = GetGenericsData(html, "Story/Writer");
+                //
+                //end of directorC:\Users\ck_ri\projects\malayalamcinemacrawler\malayalamcinemacrawler\CrawlMalayalamMovieList.cs
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
 
             return mmd;
         }
@@ -145,7 +237,7 @@ namespace malayalamcinemacrawler
             CrawlMalayalamMovieList c = new CrawlMalayalamMovieList();
             string baseUrl = "http://www.malayalamcinema.com/filmList.php?pageID=";
             int pageId = 1;
-            const int size = 5;
+            const int size = 863;
             bool baseHasNextPage = false;
             Task[] taskList = new Task[size];
             int count = 0;
@@ -153,23 +245,14 @@ namespace malayalamcinemacrawler
             ArrayList idList = new ArrayList();
             do
             {
-            //    Console.WriteLine("Page {0}", pageId);
-
+           
                 Task<string> t = c.GetStreamAsync(baseUrl + pageId.ToString());
                 taskList[pageId - 1] = t;
                 pageId++;
-               
-                //taskList.Add(t);
-                
-                //string result = await t;
-                //c.ParsePage(result, ref idList);
 
             }
             while (pageId <= size);
-            //foreach(var t in taskList)
-            //{
-            //    var p = await (Task<string>)t;
-            //}
+         
             Task.WaitAll(taskList);
             foreach(var task in taskList)
             {
@@ -188,7 +271,8 @@ namespace malayalamcinemacrawler
         public static void Crawl()
         {
             CrawlMalayalamMovieList c = new CrawlMalayalamMovieList();
-            var v = c.ParseMovieDetail("gallery_lechmi.htm");
+            //var v = c.ParseMovieDetail("gallery_premam.htm");
+            var v = c.ParseMovieDetail("gallery_money-ratnam.htm");
 
             v.Wait();
             return;
@@ -201,7 +285,23 @@ namespace malayalamcinemacrawler
 
             foreach(MalayalamMovieDetail movieDetail in movieDetails.Result)
             {
-                Console.WriteLine(movieDetail._movieName);
+                if (String.IsNullOrEmpty(movieDetail._movieName))
+                {
+                    continue;
+                }
+                Console.WriteLine("Name {0}", movieDetail._movieName);
+                if (!String.IsNullOrEmpty(movieDetail._director))
+                {
+                    Console.WriteLine("Director {0}", movieDetail._director); ;
+                }
+                if (movieDetail._casts != null)
+                {
+                    foreach (var cast in movieDetail._casts)
+                    {
+                        Console.WriteLine("Actor {0}", cast);
+                    }
+                }
+                
             }
 
       
