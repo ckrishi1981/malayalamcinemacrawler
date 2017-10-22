@@ -256,8 +256,8 @@ namespace malayalamcinemacrawler
             CrawlMalayalamMovieList c = new CrawlMalayalamMovieList();
             string baseUrl = "http://www.malayalamcinema.com/filmList.php?pageID=";
             int pageId = 1;
-            //const int size = 863;
-            const int size = 5;
+            const int size = 863;
+            //const int size = 5;
             bool baseHasNextPage = false;
             Task[] taskList = new Task[size];
             int count = 0;
@@ -377,17 +377,19 @@ namespace malayalamcinemacrawler
                     dateofrelease = "";
                 }
                 movie.WriteLine("{0}\t{1}\t{2}", movieId, movieDetail._movieName, dateofrelease);
-                
-                if (director.ContainsKey(movieDetail._director))
+                if (movieDetail._director != null)
                 {
-                    directorMovie.WriteLine("{0}\t{1}", movieId, director[movieDetail._director]);
-                }
-                else
-                {
-                    director[movieDetail._director] = directoryId;
-                    directorfs.WriteLine("{0}\t{1}", directoryId, movieDetail._director);
-                    ++directoryId;
-                    directorMovie.WriteLine("{0}\t{1}", movieId, director[movieDetail._director]);
+                    if (director.ContainsKey(movieDetail._director))
+                    {
+                        directorMovie.WriteLine("{0}\t{1}", movieId, director[movieDetail._director]);
+                    }
+                    else
+                    {
+                        director[movieDetail._director] = directoryId;
+                        directorfs.WriteLine("{0}\t{1}", directoryId, movieDetail._director);
+                        ++directoryId;
+                        directorMovie.WriteLine("{0}\t{1}", movieId, director[movieDetail._director]);
+                    }
                 }
                 producerId = c.WriteMovieRelationShip(movieId, producerMovie, producerfs, producerId, movieDetail._producers, ref producer);
                 actorId = c.WriteMovieRelationShip(movieId, actorMovie, actorfs, actorId, movieDetail._casts, ref actor);
@@ -406,6 +408,16 @@ namespace malayalamcinemacrawler
             actorMovie.Close();
             producerfs.Close();
             producerMovie.Close();
+            editorMovie.Close();
+            editorsfs.Close();
+            musicDirectorfs.Close();
+            musicDirectormovie.Close();
+            screeenplayfs.Close();
+            screenplaymovie.Close();
+            lyricsfs.Close();
+            cinematorgrapherfs.Close();
+            cinematorgraphermovie.Close();
+
                 foreach (MalayalamMovieDetail movieDetail in movieDetails.Result)
             {
                 if (String.IsNullOrEmpty(movieDetail._movieName))
@@ -418,9 +430,9 @@ namespace malayalamcinemacrawler
                 {
                     Console.WriteLine("Director {0}", movieDetail._director); ;
                 }
-                if (movieDetail._casts != null)
+                if (movieDetail._Editors != null)
                 {
-                    foreach (var cast in movieDetail._casts)
+                    foreach (var cast in movieDetail._Editors)
                     {
                         Console.WriteLine("Actor {0}", cast);
                     }
