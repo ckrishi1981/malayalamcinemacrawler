@@ -17,11 +17,11 @@ namespace malayalamcinemacrawler
         public string _movieName;
         public ArrayList _producers;
         public ArrayList _casts;
+        public ArrayList _Editors;
         public ArrayList _musicDirectors;
         public ArrayList _lyrics;
         public ArrayList _cinematographers;
         public ArrayList _screenPlayWriters;
-        public ArrayList _Editors;
         public ArrayList _thumbNailImages;
         public ArrayList _previewImages;
     }
@@ -121,22 +121,13 @@ namespace malayalamcinemacrawler
             return GetPeopleFromSubString(str, cast) ; 
         }
 
-        private ArrayList GetLyrics(string html)
-        {
-            Regex cast = new Regex("<td class=\"normaltext\">(.*)</td>");
-            string str = GetSubString(html,
-                "<td class=\"subpageheads\"><strong>Lyrics</strong></td>",
-                "</tr>");
-            var match = cast.Match(str);
-            return GetPeopleFromSubString(str, cast);
-        }
 
 
         private ArrayList GetGenericsData(string html, string typeOfJob)
         {
             Regex cast = new Regex("<td class=\"normaltext\">(.*)</td>");
             string str = GetSubString(html,
-                "<td class=\"subpageheads\"><strong>"+ typeOfJob +"</strong></td>",
+                "<td class=\"subpageheads\"><strong>" + typeOfJob + "</strong></td>",
                 "</tr>");
 
             if (String.IsNullOrEmpty(str))
@@ -153,6 +144,32 @@ namespace malayalamcinemacrawler
                 match = cast.Match(str);
             }
             return GetPeopleFromSubString(str, cast);
+        }
+
+        private ArrayList GetImage(string html, string movieName, bool preview=true)
+        {
+            movieName = movieName.ToLower().Replace(" ", "-");
+            Regex title;
+            if (preview) {
+                title = new Regex("/(" + movieName + "\\d+.jpg)", RegexOptions.None);
+            }
+             else
+            {
+                title = new Regex("/(thumb_" + movieName + "\\d+.jpg)", RegexOptions.None);
+            }
+            MatchCollection mc = title.Matches(html);
+            ArrayList imageList = new ArrayList();
+            HashSet<string> set = new HashSet<string>();
+            foreach (Match m in mc)
+            {
+
+                if (!set.Contains(m.Groups[1].Value))
+                {
+                    imageList.Add(m.Groups[1].Value);
+                    set.Add(m.Groups[1].Value);
+                }
+            }
+            return imageList;
         }
         private async Task<MalayalamMovieDetail> ParseMovieDetail(string id)
         {
@@ -194,6 +211,8 @@ namespace malayalamcinemacrawler
                 mmd._Editors = GetGenericsData(html, "Editing");
                 mmd._cinematographers = GetGenericsData(html, "Cinematography");
                 mmd._screenPlayWriters = GetGenericsData(html, "Story/Writer");
+                mmd._previewImages = GetImage(html, mmd._movieName);
+                mmd._thumbNailImages = GetImage(html, mmd._movieName, false);
                 //
                 //end of directorC:\Users\ck_ri\projects\malayalamcinemacrawler\malayalamcinemacrawler\CrawlMalayalamMovieList.cs
             }
@@ -237,7 +256,8 @@ namespace malayalamcinemacrawler
             CrawlMalayalamMovieList c = new CrawlMalayalamMovieList();
             string baseUrl = "http://www.malayalamcinema.com/filmList.php?pageID=";
             int pageId = 1;
-            const int size = 863;
+            //const int size = 863;
+            const int size = 5;
             bool baseHasNextPage = false;
             Task[] taskList = new Task[size];
             int count = 0;
@@ -265,31 +285,135 @@ namespace malayalamcinemacrawler
             }
 
             return idList;
+        }
 
 
+        private int WriteMovieRelationShip(int movieId, 
+            StreamWriter relTable, 
+            StreamWriter masterTable, 
+            int currentMasterTableId, 
+            ArrayList masterTableDetails,
+            ref Dictionary<string, int> masterTableLookUp)
+        {
+            if (masterTableDetails == null || masterTableDetails.Count == 0)
+            {
+                return currentMasterTableId;
+            }
+            foreach (string master in masterTableDetails)
+            {
+                if (masterTableLookUp.ContainsKey(master))
+                {
+                    relTable.WriteLine("{0}\t{1}", movieId, masterTableLookUp[master]);
+                }
+                else
+                {
+                    masterTableLookUp[master] = currentMasterTableId;
+                    masterTable.WriteLine("{0}\t{1}", currentMasterTableId, master);
+                    relTable.WriteLine("{0}\t{1}", movieId, masterTableLookUp[master]);
+                    currentMasterTableId++;
+                }
+            }
+            return currentMasterTableId;
         }
         public static void Crawl()
         {
             CrawlMalayalamMovieList c = new CrawlMalayalamMovieList();
             //var v = c.ParseMovieDetail("gallery_premam.htm");
-            var v = c.ParseMovieDetail("gallery_money-ratnam.htm");
+            //var v = c.ParseMovieDetail("gallery_money-ratnam.htm");
 
-            v.Wait();
-            return;
+            //v.Wait();
+            //return;
 
             Task<ArrayList> idlist = GetMovieList();
             idlist.Wait();
 
             Task<ArrayList> movieDetails =GetMovieDetails(idlist.Result);
             movieDetails.Wait();
+            StreamWriter movie = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\movie.txt");
+            StreamWriter directorfs = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\director.txt");
+            StreamWriter directorMovie = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\directormovie.txt");
+            StreamWriter producerfs = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\producer.txt");
+            StreamWriter producerMovie = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\producermovie.txt");
+            StreamWriter actorfs = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\actor.txt");
+            StreamWriter actorMovie = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\actormovie.txt");
+            StreamWriter editorsfs= new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\editor.txt");
+            StreamWriter editorMovie= new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\editorMovie.txt");
+            StreamWriter musicDirectorfs = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\musicdirector.txt");
+            StreamWriter musicDirectormovie = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\musicdirectormovie.txt");
+            StreamWriter lyricsfs = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\lyrics.txt");
+            StreamWriter lyricsmovie = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\lyricsmovie.txt");
+            StreamWriter cinematorgrapherfs  = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\cinematorgrapher.txt");
+            StreamWriter cinematorgraphermovie= new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\cinematorgraphermovie.txt");
+            StreamWriter screeenplayfs = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\screenplay.txt");
+            StreamWriter screenplaymovie= new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\screenplaymovie.txt");
 
-            foreach(MalayalamMovieDetail movieDetail in movieDetails.Result)
+
+            Dictionary<string, int> director = new Dictionary<string, int>();
+            Dictionary<string, int> producer = new Dictionary<string, int>();
+            Dictionary<string, int> actor = new Dictionary<string, int>();
+            Dictionary<string, int> editor = new Dictionary<string, int>();
+            Dictionary<string, int> musicDirectors= new Dictionary<string, int>();
+            Dictionary<string, int> lyrics= new Dictionary<string, int>();
+            Dictionary<string, int> cinematorgrapher= new Dictionary<string, int>();
+            Dictionary<string, int> screenplay= new Dictionary<string, int>();
+            int actorId = 0;
+            int producerId = 0;
+            int directoryId = 0;
+            int movieId = 0;
+            int editorId = 0;
+            int musicDirectorId = 0;
+            int lyricsid = 0;
+            int cinematorgrapherId = 0;
+            int screenplayId = 0;
+            foreach (MalayalamMovieDetail movieDetail in movieDetails.Result)
+            {
+                if (String.IsNullOrEmpty(movieDetail._movieName))
+                {
+                    continue;
+                }
+                string dateofrelease = movieDetail._dateOfRelease;
+                if (dateofrelease == null)
+                {
+                    dateofrelease = "";
+                }
+                movie.WriteLine("{0}\t{1}\t{2}", movieId, movieDetail._movieName, dateofrelease);
+                
+                if (director.ContainsKey(movieDetail._director))
+                {
+                    directorMovie.WriteLine("{0}\t{1}", movieId, director[movieDetail._director]);
+                }
+                else
+                {
+                    director[movieDetail._director] = directoryId;
+                    directorfs.WriteLine("{0}\t{1}", directoryId, movieDetail._director);
+                    ++directoryId;
+                    directorMovie.WriteLine("{0}\t{1}", movieId, director[movieDetail._director]);
+                }
+                producerId = c.WriteMovieRelationShip(movieId, producerMovie, producerfs, producerId, movieDetail._producers, ref producer);
+                actorId = c.WriteMovieRelationShip(movieId, actorMovie, actorfs, actorId, movieDetail._casts, ref actor);
+                editorId= c.WriteMovieRelationShip(movieId, editorMovie, editorsfs, editorId, movieDetail._Editors, ref editor);
+                musicDirectorId= c.WriteMovieRelationShip(movieId, musicDirectormovie, musicDirectorfs, musicDirectorId, movieDetail._musicDirectors, ref musicDirectors);
+                lyricsid= c.WriteMovieRelationShip(movieId, lyricsmovie, lyricsfs, lyricsid, movieDetail._lyrics, ref lyrics);
+                cinematorgrapherId= c.WriteMovieRelationShip(movieId, cinematorgraphermovie, cinematorgrapherfs, cinematorgrapherId, movieDetail._cinematographers, ref cinematorgrapher);
+                screenplayId= c.WriteMovieRelationShip(movieId, screenplaymovie, screeenplayfs, screenplayId, movieDetail._screenPlayWriters, ref screenplay);
+                movieId++;
+                
+            }
+            movie.Close();
+            directorfs.Close();
+            directorMovie.Close();
+            actorfs.Close();
+            actorMovie.Close();
+            producerfs.Close();
+            producerMovie.Close();
+                foreach (MalayalamMovieDetail movieDetail in movieDetails.Result)
             {
                 if (String.IsNullOrEmpty(movieDetail._movieName))
                 {
                     continue;
                 }
                 Console.WriteLine("Name {0}", movieDetail._movieName);
+                
                 if (!String.IsNullOrEmpty(movieDetail._director))
                 {
                     Console.WriteLine("Director {0}", movieDetail._director); ;
@@ -301,6 +425,8 @@ namespace malayalamcinemacrawler
                         Console.WriteLine("Actor {0}", cast);
                     }
                 }
+
+                
                 
             }
 
