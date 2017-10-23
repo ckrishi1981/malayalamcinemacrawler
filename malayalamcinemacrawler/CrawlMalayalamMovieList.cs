@@ -92,6 +92,15 @@ namespace malayalamcinemacrawler
 
                     }
                 }
+                else if (actors.Contains("|"))
+                {
+                    foreach (string actor in castList)
+                    {
+                        char[] charArray = { '|' };
+                        modifiedList.AddRange(actor.Split(charArray));
+
+                    }
+                }
                 else
                 {
                     modifiedList.AddRange(castList);
@@ -151,11 +160,11 @@ namespace malayalamcinemacrawler
             movieName = movieName.ToLower().Replace(" ", "-");
             Regex title;
             if (preview) {
-                title = new Regex("/(" + movieName + "\\d+.jpg)", RegexOptions.None);
+                title = new Regex("(films/\\d+/filmgal/" + movieName + "\\d+.jpg)", RegexOptions.None);
             }
              else
             {
-                title = new Regex("/(thumb_" + movieName + "\\d+.jpg)", RegexOptions.None);
+                title = new Regex("(films/\\d+/filmgal/thumb_" + movieName + "\\d+.jpg)", RegexOptions.None);
             }
             MatchCollection mc = title.Matches(html);
             ArrayList imageList = new ArrayList();
@@ -301,19 +310,28 @@ namespace malayalamcinemacrawler
             }
             foreach (string master in masterTableDetails)
             {
-                if (masterTableLookUp.ContainsKey(master))
+                string copy = master.ToLower().Trim();
+                if (masterTableLookUp.ContainsKey(copy))
                 {
-                    relTable.WriteLine("{0}\t{1}", movieId, masterTableLookUp[master]);
+                    relTable.WriteLine("{0}\t{1}", movieId, masterTableLookUp[copy]);
                 }
                 else
                 {
-                    masterTableLookUp[master] = currentMasterTableId;
-                    masterTable.WriteLine("{0}\t{1}", currentMasterTableId, master);
-                    relTable.WriteLine("{0}\t{1}", movieId, masterTableLookUp[master]);
+                    masterTableLookUp[copy] = currentMasterTableId;
+                    masterTable.WriteLine("{0}\t{1}", currentMasterTableId, master.Trim());
+                    relTable.WriteLine("{0}\t{1}", movieId, masterTableLookUp[copy]);
                     currentMasterTableId++;
                 }
             }
             return currentMasterTableId;
+        }
+        private void AddImage(StreamWriter fs, int movieId, ArrayList imageList)
+        {
+            if (imageList == null) return;
+            foreach(string image in imageList)
+            {
+                fs.WriteLine("{0}\t{1}", movieId, image.Trim());
+            }
         }
         public static void Crawl()
         {
@@ -346,6 +364,9 @@ namespace malayalamcinemacrawler
             StreamWriter cinematorgraphermovie= new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\cinematorgraphermovie.txt");
             StreamWriter screeenplayfs = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\screenplay.txt");
             StreamWriter screenplaymovie= new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\screenplaymovie.txt");
+            StreamWriter imageMoviefs = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\movieImage.txt");
+            StreamWriter thumbNailfs = new StreamWriter(@"c:\Users\ck_ri\projects\malayalamcinemacrawler\output\moviethumbnail.txt");
+
 
 
             Dictionary<string, int> director = new Dictionary<string, int>();
@@ -379,16 +400,18 @@ namespace malayalamcinemacrawler
                 movie.WriteLine("{0}\t{1}\t{2}", movieId, movieDetail._movieName, dateofrelease);
                 if (movieDetail._director != null)
                 {
-                    if (director.ContainsKey(movieDetail._director))
+                    string d = movieDetail._director;
+                    d = d.Trim().ToLower();
+                    if (director.ContainsKey(d))
                     {
-                        directorMovie.WriteLine("{0}\t{1}", movieId, director[movieDetail._director]);
+                        directorMovie.WriteLine("{0}\t{1}", movieId, director[d]);
                     }
                     else
                     {
-                        director[movieDetail._director] = directoryId;
-                        directorfs.WriteLine("{0}\t{1}", directoryId, movieDetail._director);
+                        director[d] = directoryId;
+                        directorfs.WriteLine("{0}\t{1}", directoryId, movieDetail._director.Trim());
                         ++directoryId;
-                        directorMovie.WriteLine("{0}\t{1}", movieId, director[movieDetail._director]);
+                        directorMovie.WriteLine("{0}\t{1}", movieId, director[d]);
                     }
                 }
                 producerId = c.WriteMovieRelationShip(movieId, producerMovie, producerfs, producerId, movieDetail._producers, ref producer);
@@ -398,9 +421,13 @@ namespace malayalamcinemacrawler
                 lyricsid= c.WriteMovieRelationShip(movieId, lyricsmovie, lyricsfs, lyricsid, movieDetail._lyrics, ref lyrics);
                 cinematorgrapherId= c.WriteMovieRelationShip(movieId, cinematorgraphermovie, cinematorgrapherfs, cinematorgrapherId, movieDetail._cinematographers, ref cinematorgrapher);
                 screenplayId= c.WriteMovieRelationShip(movieId, screenplaymovie, screeenplayfs, screenplayId, movieDetail._screenPlayWriters, ref screenplay);
+                c.AddImage(imageMoviefs, movieId, movieDetail._previewImages);
+                c.AddImage(thumbNailfs, movieId, movieDetail._thumbNailImages);
                 movieId++;
                 
             }
+            thumbNailfs.Close();
+            imageMoviefs.Close();
             movie.Close();
             directorfs.Close();
             directorMovie.Close();
