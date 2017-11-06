@@ -15,6 +15,7 @@ namespace malayalamcinemacrawler
         public string _dateOfRelease;
         public string _director;
         public string _movieName;
+        public string _thumbNail;
         public ArrayList _producers;
         public ArrayList _casts;
         public ArrayList _Editors;
@@ -53,7 +54,7 @@ namespace malayalamcinemacrawler
             {
                 string s = ((Match)match).Value;
                 id.Add(s);
-               // Console.WriteLine(s);
+               Console.WriteLine(s);
                 
             }
             
@@ -129,7 +130,29 @@ namespace malayalamcinemacrawler
             var match = cast.Match(str);
             return GetPeopleFromSubString(str, cast) ; 
         }
+        private string GetYearOfRelease(string html)
+        {
+            string typeOfJob = "Year of release";
+            Regex cast = new Regex("<td class=\"subpageheads\">(.*)</td>");
+            string str = GetSubString(html,
+                "<td width=\"156\" class=\"subpageheads\"><strong>" + typeOfJob + "</strong></td>",
+                "</tr>");
 
+            if (String.IsNullOrEmpty(str))
+            {
+                str = GetSubString(html,
+                "<td ><strong>" + typeOfJob + "</strong></td>",
+                "</tr>");
+            }
+            cast = new Regex("<td width=\"299\" class=\"normaltext\">(.*)</td>");
+            var match = cast.Match(str);
+            if (match.Success && match.Groups.Count > 0)
+            {
+
+                return match.Groups[1].Value;
+            }
+            return "";
+        }
 
 
         private ArrayList GetGenericsData(string html, string typeOfJob)
@@ -198,10 +221,15 @@ namespace malayalamcinemacrawler
                 {
                     mmd._movieName = match.Groups[1].Value.Trim();
                 }
-                match = yearOfRelease.Match(html);
-                if (match.Success)
+                //match = yearOfRelease.Match(html);
+                //if (match.Success)
+                //{
+                //    mmd._dateOfRelease = match.Groups[1].Value.Trim();
+                //}
+                string yea =   GetYearOfRelease(html);
+                if (yea!= null )
                 {
-                    mmd._dateOfRelease = match.Groups[1].Value.Trim();
+                    mmd._dateOfRelease = yea;
                 }
 
                 //director
@@ -210,7 +238,14 @@ namespace malayalamcinemacrawler
                 {
                     mmd._director = (string) director[0];
                 }
-
+                //<img src=\"films/4833/thu.jpg\" hspace=\"5\" vspace=\"5\" style=\"border-color:#CB9930;\" >
+                Regex thumbnail = new Regex("<img src=\"(.*)\" hspace=\"5\" vspace=\"5\" style=\"border-color:#CB9930;\" >");
+                match = thumbnail.Match(html);
+                if (match.Success)
+                {
+                    mmd._thumbNail = match.Groups[1].Value;
+                }
+                    
 
                 mmd._producers = GetProducer(html);
                 mmd._casts = GetCast(html);
@@ -265,8 +300,8 @@ namespace malayalamcinemacrawler
             CrawlMalayalamMovieList c = new CrawlMalayalamMovieList();
             string baseUrl = "http://www.malayalamcinema.com/filmList.php?pageID=";
             int pageId = 1;
-            const int size = 863;
             //const int size = 5;
+            const int size = 864;
             bool baseHasNextPage = false;
             Task[] taskList = new Task[size];
             int count = 0;
@@ -330,17 +365,17 @@ namespace malayalamcinemacrawler
             if (imageList == null) return;
             foreach(string image in imageList)
             {
-                fs.WriteLine("{0}\t{1}", movieId, image.Trim());
+                fs.WriteLine("{0}\thttp://www.malayalamcinema.com/{1}", movieId, image.Trim());
             }
         }
         public static void Crawl()
         {
             CrawlMalayalamMovieList c = new CrawlMalayalamMovieList();
-            //var v = c.ParseMovieDetail("gallery_premam.htm");
-            //var v = c.ParseMovieDetail("gallery_money-ratnam.htm");
+            // var v = c.ParseMovieDetail("gallery_premam.htm");
+            //// var v = c.ParseMovieDetail("gallery_money-ratnam.htm");
 
-            //v.Wait();
-            //return;
+            // v.Wait();
+            // return;
 
             Task<ArrayList> idlist = GetMovieList();
             idlist.Wait();
@@ -397,7 +432,15 @@ namespace malayalamcinemacrawler
                 {
                     dateofrelease = "";
                 }
-                movie.WriteLine("{0}\t{1}\t{2}", movieId, movieDetail._movieName, dateofrelease);
+                string thumbnail = movieDetail._thumbNail;
+                if (thumbnail == null)
+                {
+                    thumbnail = "";
+                }else
+                {
+                    thumbnail = "http://www.malayalamcinema.com/" + thumbnail;
+                }
+                movie.WriteLine("{0}\t{1}\t{2}\t{3}", movieId, movieDetail._movieName, dateofrelease, thumbnail);
                 if (movieDetail._director != null)
                 {
                     string d = movieDetail._director;
@@ -464,9 +507,6 @@ namespace malayalamcinemacrawler
                         Console.WriteLine("Actor {0}", cast);
                     }
                 }
-
-                
-                
             }
 
       
